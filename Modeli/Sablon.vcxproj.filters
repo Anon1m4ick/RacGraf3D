@@ -40,6 +40,8 @@
     <None Include="tex.frag" />
     <None Include="model.vert" />
     <None Include="model.frag" />
+    <None Include="ui.vert" />
+    <None Include="ui.frag" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="model.hpp">

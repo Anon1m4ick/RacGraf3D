@@ -80,6 +80,11 @@ const float waterFillPerHit = 0.004f;    // per droplet impact
 unsigned int waterVAO = 0, waterVBO = 0;
 int waterVertexCount = 0;
 
+// ===== NAME =====
+unsigned int uiVAO = 0, uiVBO = 0;
+unsigned int uiNameTex = 0;
+
+
 // ===== 7-SEG DIGITS =====
 static bool DIGITS[10][7] = {
     {1,1,1,1,1,1,0}, // 0
@@ -852,7 +857,69 @@ static void drawRemoteModel(Model& remoteM, Shader& modelShader)
 
     modelShader.setMat4("uM", M);
     remoteM.Draw(modelShader);
+
+
 }
+
+static void initNameQuad_TopLeft(float wNdc = 0.60f, float hNdc = 0.18f, float margin = 0.03f)
+{
+    float l = -1.0f + margin;
+    float t = 1.0f - margin;
+    float r = l + wNdc;
+    float b = t - hNdc;
+
+    // pos(x,y) uv(u,v)
+    float v[] = {
+        l, b,  0.0f, 0.0f,
+        r, b,  1.0f, 0.0f,
+        r, t,  1.0f, 1.0f,
+
+        r, t,  1.0f, 1.0f,
+        l, t,  0.0f, 1.0f,
+        l, b,  0.0f, 0.0f
+    };
+
+    glGenVertexArrays(1, &uiVAO);
+    glGenBuffers(1, &uiVBO);
+
+    glBindVertexArray(uiVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, uiVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(v), v, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    glBindVertexArray(0);
+}
+
+static void drawNameUI(Shader& uiShader)
+{
+    if (!uiNameTex || !uiVAO) return;
+
+    GLboolean wasDepth = glIsEnabled(GL_DEPTH_TEST);
+
+    glDisable(GL_DEPTH_TEST);
+
+    uiShader.use();
+    uiShader.setInt("uTex", 0);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, uiNameTex);
+
+    glBindVertexArray(uiVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+
+    if (wasDepth) glEnable(GL_DEPTH_TEST);
+    else          glDisable(GL_DEPTH_TEST);
+}
+
+
+
+
 
 
 
@@ -895,6 +962,8 @@ int main()
     Shader shader("basic.vert", "basic.frag");       // cubes
     Shader texShader("tex.vert", "tex.frag");        // icons
     Shader modelShader("model.vert", "model.frag");  // obj+mtl
+    Shader uiShader("ui.vert", "ui.frag");
+
 
     initCube();
     initBasin();
@@ -904,6 +973,8 @@ int main()
     texFire = loadTextureRGBA("res/fire.png");
     texSnow = loadTextureRGBA("res/snow.png");
     texOk = loadTextureRGBA("res/ok.png");
+    initNameQuad_TopLeft(0.60f, 0.18f, 0.03f);
+    uiNameTex = loadTextureRGBA("res/ui/name.png");
 
     // Load Models
     Model toilet("res/Toilet/Toilet.obj");
@@ -929,6 +1000,8 @@ int main()
         float t = (float)glfwGetTime();
         deltaTime = t - lastFrame;
         lastFrame = t;
+        
+
 
         processInput(window);
 
@@ -1156,6 +1229,7 @@ int main()
         if (!basinHeld) {
             drawRemoteModel(remoteM, modelShader);
         }
+        drawNameUI(uiShader);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
